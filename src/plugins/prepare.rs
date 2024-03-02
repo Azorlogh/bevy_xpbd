@@ -365,12 +365,9 @@ fn init_rigid_bodies(
     mut bodies: Query<
         (
             Entity,
-            Option<&LinearVelocity>,
-            Option<&AngularVelocity>,
+            Option<&Velocity>,
             Option<&ExternalForce>,
-            Option<&ExternalTorque>,
             Option<&ExternalImpulse>,
-            Option<&ExternalAngularImpulse>,
             Option<&Restitution>,
             Option<&Friction>,
             Option<&TimeSleeping>,
@@ -378,29 +375,13 @@ fn init_rigid_bodies(
         Added<RigidBody>,
     >,
 ) {
-    for (
-        entity,
-        lin_vel,
-        ang_vel,
-        force,
-        torque,
-        impulse,
-        angular_impulse,
-        restitution,
-        friction,
-        time_sleeping,
-    ) in &mut bodies
-    {
+    for (entity, velocity, force, impulse, restitution, friction, time_sleeping) in &mut bodies {
         commands.entity(entity).try_insert((
             AccumulatedTranslation(Vector::ZERO),
-            *lin_vel.unwrap_or(&LinearVelocity::default()),
-            *ang_vel.unwrap_or(&AngularVelocity::default()),
-            PreSolveLinearVelocity::default(),
-            PreSolveAngularVelocity::default(),
+            *velocity.unwrap_or(&Velocity::default()),
+            PreSolveVelocity::default(),
             *force.unwrap_or(&ExternalForce::default()),
-            *torque.unwrap_or(&ExternalTorque::default()),
             *impulse.unwrap_or(&ExternalImpulse::default()),
-            *angular_impulse.unwrap_or(&ExternalAngularImpulse::default()),
             *restitution.unwrap_or(&Restitution::default()),
             *friction.unwrap_or(&Friction::default()),
             *time_sleeping.unwrap_or(&TimeSleeping::default()),

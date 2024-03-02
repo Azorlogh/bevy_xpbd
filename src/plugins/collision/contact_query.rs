@@ -578,28 +578,28 @@ pub fn time_of_impact(
     collider1: &Collider,
     position1: impl Into<Position>,
     rotation1: impl Into<Rotation>,
-    velocity1: impl Into<LinearVelocity>,
+    velocity1: impl Into<Velocity>,
     collider2: &Collider,
     position2: impl Into<Position>,
     rotation2: impl Into<Rotation>,
-    velocity2: impl Into<LinearVelocity>,
+    velocity2: impl Into<Velocity>,
     max_time_of_impact: Scalar,
 ) -> Result<Option<TimeOfImpact>, UnsupportedShape> {
     let rotation1: Rotation = rotation1.into();
     let rotation2: Rotation = rotation2.into();
 
-    let velocity1: LinearVelocity = velocity1.into();
-    let velocity2: LinearVelocity = velocity2.into();
+    let velocity1: Velocity = velocity1.into();
+    let velocity2: Velocity = velocity2.into();
 
     let isometry1 = utils::make_isometry(position1.into(), rotation1);
     let isometry2 = utils::make_isometry(position2.into(), rotation2);
 
     parry::query::time_of_impact(
         &isometry1,
-        &velocity1.0.into(),
+        &velocity1.linear.into(),
         collider1.shape_scaled().0.as_ref(),
         &isometry2,
-        &velocity2.0.into(),
+        &velocity2.linear.into(),
         collider2.shape_scaled().0.as_ref(),
         max_time_of_impact,
         true,

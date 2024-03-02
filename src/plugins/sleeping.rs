@@ -38,8 +38,7 @@ impl Plugin for SleepingPlugin {
 type SleepingQueryComponents = (
     Entity,
     &'static RigidBody,
-    &'static mut LinearVelocity,
-    &'static mut AngularVelocity,
+    &'static mut Velocity,
     &'static mut TimeSleeping,
 );
 
@@ -52,18 +51,18 @@ pub fn mark_sleeping_bodies(
     sleep_threshold: Res<SleepingThreshold>,
     dt: Res<Time>,
 ) {
-    for (entity, rb, mut lin_vel, mut ang_vel, mut time_sleeping) in &mut bodies {
+    for (entity, rb, mut vel, mut time_sleeping) in &mut bodies {
         // Only dynamic bodies can sleep.
         if !rb.is_dynamic() {
             continue;
         }
 
-        let lin_vel_sq = lin_vel.length_squared();
+        let lin_vel_sq = vel.linear.length_squared();
 
         #[cfg(feature = "2d")]
-        let ang_vel_sq = ang_vel.0.powi(2);
+        let ang_vel_sq = vel.angular.powi(2);
         #[cfg(feature = "3d")]
-        let ang_vel_sq = ang_vel.0.dot(ang_vel.0);
+        let ang_vel_sq = vel.angular.dot(vel.angular);
 
         // Negative thresholds indicate that sleeping is disabled.
         let lin_sleeping_threshold_sq = sleep_threshold.linear * sleep_threshold.linear.abs();
@@ -80,8 +79,7 @@ pub fn mark_sleeping_bodies(
         // If the body has been still for long enough, set it to sleep and reset velocities.
         if time_sleeping.0 > deactivation_time.0 {
             commands.entity(entity).try_insert(Sleeping);
-            *lin_vel = LinearVelocity::ZERO;
-            *ang_vel = AngularVelocity::ZERO;
+            *vel = Velocity::ZERO;
         }
     }
 }
@@ -89,12 +87,9 @@ pub fn mark_sleeping_bodies(
 type WokeUpFilter = Or<(
     Changed<Position>,
     Changed<Rotation>,
-    Changed<LinearVelocity>,
-    Changed<AngularVelocity>,
+    Changed<Velocity>,
     Changed<ExternalForce>,
-    Changed<ExternalTorque>,
     Changed<ExternalImpulse>,
-    Changed<ExternalAngularImpulse>,
     Changed<GravityScale>,
 )>;
 

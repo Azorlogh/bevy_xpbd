@@ -362,31 +362,26 @@ fn update_aabb<C: AnyCollider>(
             &Position,
             &Rotation,
             Option<&ColliderParent>,
-            Option<&LinearVelocity>,
-            Option<&AngularVelocity>,
+            Option<&Velocity>,
         ),
         Or<(
             Changed<Position>,
             Changed<Rotation>,
-            Changed<LinearVelocity>,
-            Changed<AngularVelocity>,
+            Changed<Velocity>,
             Changed<C>,
         )>,
     >,
-    parent_velocity: Query<
-        (&Position, Option<&LinearVelocity>, Option<&AngularVelocity>),
-        With<Children>,
-    >,
+    parent_velocity: Query<(&Position, Option<&Velocity>), With<Children>>,
     dt: Res<Time>,
     narrow_phase_config: Option<Res<NarrowPhaseConfig>>,
 ) {
     // Safety margin multiplier bigger than DELTA_TIME to account for sudden accelerations
     let safety_margin_factor = 2.0 * dt.delta_seconds_adjusted();
 
-    for (collider, mut aabb, pos, rot, collider_parent, lin_vel, ang_vel) in &mut colliders {
-        let (lin_vel, ang_vel) = if let (Some(lin_vel), Some(ang_vel)) = (lin_vel, ang_vel) {
-            (*lin_vel, *ang_vel)
-        } else if let Some(Ok((parent_pos, Some(lin_vel), Some(ang_vel)))) =
+    for (collider, mut aabb, pos, rot, collider_parent, vel) in &mut colliders {
+        let vel = if let Some(vel) = vel {
+            *vel
+        } else if let Some(Ok((parent_pos, Some(vel)))) =
             collider_parent.map(|p| parent_velocity.get(p.get()))
         {
             // If the rigid body is rotating, off-center colliders will orbit around it,
@@ -398,12 +393,15 @@ fn update_aabb<C: AnyCollider>(
             let offset = pos.0 - parent_pos.0;
             #[cfg(feature = "2d")]
             let vel_at_offset =
-                lin_vel.0 + Vector::new(-ang_vel.0 * offset.y, ang_vel.0 * offset.x) * 1.0;
+                vel.linear + Vector::new(-vel.angular * offset.y, vel.angular * offset.x) * 1.0;
             #[cfg(feature = "3d")]
-            let vel_at_offset = lin_vel.0 + ang_vel.cross(offset);
-            (LinearVelocity(vel_at_offset), *ang_vel)
+            let vel_at_offset = vel.linear + vel.angular.cross(offset);
+            Velocity {
+                linear: vel_at_offset,
+                angular: vel.angular,
+            }
         } else {
-            (LinearVelocity::ZERO, AngularVelocity::ZERO)
+            Velocity::ZERO
         };
 
         // Current position and predicted position for next feame
@@ -412,13 +410,13 @@ fn update_aabb<C: AnyCollider>(
             #[cfg(feature = "2d")]
             {
                 (
-                    pos.0 + lin_vel.0 * safety_margin_factor,
-                    *rot + Rotation::from_radians(safety_margin_factor * ang_vel.0),
+                    pos.0 + vel.linear * safety_margin_factor,
+                    *rot + Rotation::from_radians(safety_margin_factor * vel.angular),
                 )
             }
             #[cfg(feature = "3d")]
             {
-                let q = Quaternion::from_vec4(ang_vel.0.extend(0.0)) * rot.0;
+                let q = Quaternion::from_vec4(vel.angular.extend(0.0)) * rot.0;
                 let (x, y, z, w) = (
                     rot.x + safety_margin_factor * 0.5 * q.x,
                     rot.y + safety_margin_factor * 0.5 * q.y,
@@ -426,7 +424,7 @@ fn update_aabb<C: AnyCollider>(
                     rot.w + safety_margin_factor * 0.5 * q.w,
                 );
                 (
-                    pos.0 + lin_vel.0 * safety_margin_factor,
+                    pos.0 + vel.linear * safety_margin_factor,
                     Quaternion::from_xyzw(x, y, z, w).normalize(),
                 )
             }

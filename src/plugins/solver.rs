@@ -55,7 +55,11 @@ impl Plugin for SolverPlugin {
                 .in_set(SubstepSet::SolveConstraints),
         );
 
-        substeps.add_systems((update_lin_vel, update_ang_vel).in_set(SubstepSet::UpdateVelocities));
+        substeps.add_systems(
+            (update_lin_vel, update_ang_vel)
+                .chain()
+                .in_set(SubstepSet::UpdateVelocities),
+        );
 
         substeps.add_systems(
             (
@@ -323,8 +327,8 @@ fn update_lin_vel(
             &Position,
             &PreviousPosition,
             &AccumulatedTranslation,
-            &mut LinearVelocity,
-            &mut PreSolveLinearVelocity,
+            &mut Velocity,
+            &mut PreSolveVelocity,
         ),
         Without<Sleeping>,
     >,
@@ -332,20 +336,20 @@ fn update_lin_vel(
 ) {
     let delta_secs = time.delta_seconds_adjusted();
 
-    for (rb, pos, prev_pos, translation, mut lin_vel, mut pre_solve_lin_vel) in &mut bodies {
+    for (rb, pos, prev_pos, translation, mut velocity, mut pre_solve_lin_vel) in &mut bodies {
         // Static bodies have no velocity
-        if rb.is_static() && lin_vel.0 != Vector::ZERO {
-            lin_vel.0 = Vector::ZERO;
+        if rb.is_static() && velocity.linear != Vector::ZERO {
+            velocity.linear = Vector::ZERO;
         }
 
-        pre_solve_lin_vel.0 = lin_vel.0;
+        pre_solve_lin_vel.linear = velocity.linear;
 
         if rb.is_dynamic() {
             // v = (x - x_prev) / h
             let new_lin_vel = (pos.0 - prev_pos.0 + translation.0) / delta_secs;
             // avoid triggering bevy's change detection unnecessarily
-            if new_lin_vel != lin_vel.0 && new_lin_vel.is_finite() {
-                lin_vel.0 = new_lin_vel;
+            if new_lin_vel != velocity.linear && new_lin_vel.is_finite() {
+                velocity.linear = new_lin_vel;
             }
         }
     }
@@ -359,8 +363,8 @@ fn update_ang_vel(
             &RigidBody,
             &Rotation,
             &PreviousRotation,
-            &mut AngularVelocity,
-            &mut PreSolveAngularVelocity,
+            &mut Velocity,
+            &mut PreSolveVelocity,
         ),
         Without<Sleeping>,
     >,
@@ -368,19 +372,19 @@ fn update_ang_vel(
 ) {
     let delta_secs = time.delta_seconds_adjusted();
 
-    for (rb, rot, prev_rot, mut ang_vel, mut pre_solve_ang_vel) in &mut bodies {
+    for (rb, rot, prev_rot, mut vel, mut pre_solve_vel) in &mut bodies {
         // Static bodies have no velocity
-        if rb.is_static() && ang_vel.0 != 0.0 {
-            ang_vel.0 = 0.0;
+        if rb.is_static() && vel.angular != 0.0 {
+            vel.angular = 0.0;
         }
 
-        pre_solve_ang_vel.0 = ang_vel.0;
+        pre_solve_vel.angular = vel.angular;
 
         if rb.is_dynamic() {
             let new_ang_vel = (rot.mul(prev_rot.inverse())).as_radians() / delta_secs;
             // avoid triggering bevy's change detection unnecessarily
-            if new_ang_vel != ang_vel.0 && new_ang_vel.is_finite() {
-                ang_vel.0 = new_ang_vel;
+            if new_ang_vel != vel.angular && new_ang_vel.is_finite() {
+                vel.angular = new_ang_vel;
             }
         }
     }
@@ -394,8 +398,8 @@ fn update_ang_vel(
             &RigidBody,
             &Rotation,
             &PreviousRotation,
-            &mut AngularVelocity,
-            &mut PreSolveAngularVelocity,
+            &mut Velocity,
+            &mut PreSolveVelocity,
         ),
         Without<Sleeping>,
     >,
@@ -403,13 +407,13 @@ fn update_ang_vel(
 ) {
     let delta_secs = time.delta_seconds_adjusted();
 
-    for (rb, rot, prev_rot, mut ang_vel, mut pre_solve_ang_vel) in &mut bodies {
+    for (rb, rot, prev_rot, mut vel, mut pre_solve_ang_vel) in &mut bodies {
         // Static bodies have no velocity
-        if rb.is_static() && ang_vel.0 != Vector::ZERO {
-            ang_vel.0 = Vector::ZERO;
+        if rb.is_static() && vel.angular != Vector::ZERO {
+            vel.angular = Vector::ZERO;
         }
 
-        pre_solve_ang_vel.0 = ang_vel.0;
+        pre_solve_ang_vel.angular = vel.angular;
 
         if rb.is_dynamic() {
             let delta_rot = rot.mul_quat(prev_rot.inverse().0);
@@ -418,8 +422,8 @@ fn update_ang_vel(
                 new_ang_vel = -new_ang_vel;
             }
             // avoid triggering bevy's change detection unnecessarily
-            if new_ang_vel != ang_vel.0 && new_ang_vel.is_finite() {
-                ang_vel.0 = new_ang_vel;
+            if new_ang_vel != vel.angular && new_ang_vel.is_finite() {
+                vel.angular = new_ang_vel;
             }
         }
     }
@@ -452,13 +456,13 @@ fn solve_vel(
 
             // Compute pre-solve relative normal velocities at the contact point (used for restitution)
             let pre_solve_contact_vel1 = compute_contact_vel(
-                body1.pre_solve_linear_velocity.0,
-                body1.pre_solve_angular_velocity.0,
+                body1.pre_solve_velocity.linear,
+                body1.pre_solve_velocity.angular,
                 r1,
             );
             let pre_solve_contact_vel2 = compute_contact_vel(
-                body2.pre_solve_linear_velocity.0,
-                body2.pre_solve_angular_velocity.0,
+                body2.pre_solve_velocity.linear,
+                body2.pre_solve_velocity.angular,
                 r2,
             );
             let pre_solve_relative_vel = pre_solve_contact_vel1 - pre_solve_contact_vel2;
@@ -466,9 +470,9 @@ fn solve_vel(
 
             // Compute relative normal and tangential velocities at the contact point (equation 29)
             let contact_vel1 =
-                compute_contact_vel(body1.linear_velocity.0, body1.angular_velocity.0, r1);
+                compute_contact_vel(body1.velocity.linear, body1.velocity.angular, r1);
             let contact_vel2 =
-                compute_contact_vel(body2.linear_velocity.0, body2.angular_velocity.0, r2);
+                compute_contact_vel(body2.velocity.linear, body2.velocity.angular, r2);
             let relative_vel = contact_vel1 - contact_vel2;
 
             let normal_speed = normal.dot(relative_vel);
@@ -519,10 +523,10 @@ fn solve_vel(
                 let delta_ang_vel = compute_delta_ang_vel(inv_inertia1, r1, p);
 
                 if delta_lin_vel != Vector::ZERO {
-                    body1.linear_velocity.0 += delta_lin_vel;
+                    body1.velocity.linear += delta_lin_vel;
                 }
-                if delta_ang_vel != AngularVelocity::ZERO.0 {
-                    body1.angular_velocity.0 += delta_ang_vel;
+                if delta_ang_vel != AxialVector::ZERO {
+                    body1.velocity.angular += delta_ang_vel;
                 }
             }
             if body2.rb.is_dynamic() && body2.dominance() <= body1.dominance() {
@@ -530,10 +534,10 @@ fn solve_vel(
                 let delta_ang_vel = compute_delta_ang_vel(inv_inertia2, r2, p);
 
                 if delta_lin_vel != Vector::ZERO {
-                    body2.linear_velocity.0 -= delta_lin_vel;
+                    body2.velocity.linear -= delta_lin_vel;
                 }
-                if delta_ang_vel != AngularVelocity::ZERO.0 {
-                    body2.angular_velocity.0 -= delta_ang_vel;
+                if delta_ang_vel != AxialVector::ZERO {
+                    body2.velocity.angular -= delta_ang_vel;
                 }
             }
         }
@@ -544,13 +548,7 @@ fn solve_vel(
 #[allow(clippy::type_complexity)]
 pub fn joint_damping<T: Joint>(
     mut bodies: Query<
-        (
-            &RigidBody,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            &InverseMass,
-            Option<&Dominance>,
-        ),
+        (&RigidBody, &mut Velocity, &InverseMass, Option<&Dominance>),
         Without<Sleeping>,
     >,
     joints: Query<&T, Without<RigidBody>>,
@@ -560,21 +558,21 @@ pub fn joint_damping<T: Joint>(
 
     for joint in &joints {
         if let Ok(
-            [(rb1, mut lin_vel1, mut ang_vel1, inv_mass1, dominance1), (rb2, mut lin_vel2, mut ang_vel2, inv_mass2, dominance2)],
+            [(rb1, mut vel1, inv_mass1, dominance1), (rb2, mut vel2, inv_mass2, dominance2)],
         ) = bodies.get_many_mut(joint.entities())
         {
             let delta_omega =
-                (ang_vel2.0 - ang_vel1.0) * (joint.damping_angular() * delta_secs).min(1.0);
+                (vel2.angular - vel1.angular) * (joint.damping_angular() * delta_secs).min(1.0);
 
             if rb1.is_dynamic() {
-                ang_vel1.0 += delta_omega;
+                vel1.angular += delta_omega;
             }
             if rb2.is_dynamic() {
-                ang_vel2.0 -= delta_omega;
+                vel2.angular -= delta_omega;
             }
 
             let delta_v =
-                (lin_vel2.0 - lin_vel1.0) * (joint.damping_linear() * delta_secs).min(1.0);
+                (vel2.linear - vel1.linear) * (joint.damping_linear() * delta_secs).min(1.0);
 
             let w1 = if rb1.is_dynamic() { inv_mass1.0 } else { 0.0 };
             let w2 = if rb2.is_dynamic() { inv_mass2.0 } else { 0.0 };
@@ -589,10 +587,10 @@ pub fn joint_damping<T: Joint>(
             let dominance2 = dominance2.map_or(0, |dominance| dominance.0);
 
             if rb1.is_dynamic() && (!rb2.is_dynamic() || dominance1 <= dominance2) {
-                lin_vel1.0 += p * inv_mass1.0;
+                vel1.linear += p * inv_mass1.0;
             }
             if rb2.is_dynamic() && (!rb1.is_dynamic() || dominance2 <= dominance1) {
-                lin_vel2.0 -= p * inv_mass2.0;
+                vel2.linear -= p * inv_mass2.0;
             }
         }
     }

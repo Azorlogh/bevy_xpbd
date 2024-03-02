@@ -114,7 +114,10 @@ fn body_with_velocity_moves_on_first_frame() {
         commands.spawn((
             SpatialBundle::default(),
             RigidBody::Dynamic,
-            LinearVelocity(Vector::X),
+            Velocity {
+                linear: Vector::X,
+                angular: Vector::ZERO,
+            },
             #[cfg(feature = "2d")]
             MassPropertiesBundle::new_computed(&Collider::circle(0.5), 1.0),
             #[cfg(feature = "3d")]
@@ -147,7 +150,10 @@ fn body_with_velocity_moves() {
         commands.spawn((
             SpatialBundle::default(),
             RigidBody::Dynamic,
-            LinearVelocity(Vector::X),
+            Velocity {
+                linear: Vector::X,
+                angular: Vector::ZERO,
+            },
             #[cfg(feature = "2d")]
             MassPropertiesBundle::new_computed(&Collider::circle(0.5), 1.0),
             #[cfg(feature = "3d")]

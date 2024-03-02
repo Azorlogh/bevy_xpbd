@@ -416,85 +416,31 @@ pub struct AccumulatedTranslation(pub Vector);
 ///     }
 /// }
 /// ```
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq, From)]
+#[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq, From)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component)]
-pub struct LinearVelocity(pub Vector);
+pub struct Velocity {
+    /// The linear velocity
+    pub linear: Vector,
+    /// The angular velocity
+    pub angular: AxialVector,
+}
 
-impl LinearVelocity {
+impl Velocity {
     /// Zero linear velocity.
-    pub const ZERO: LinearVelocity = LinearVelocity(Vector::ZERO);
+    pub const ZERO: Velocity = Velocity {
+        linear: Vector::ZERO,
+        angular: AxialVector::ZERO,
+    };
 }
 
 /// The linear velocity of a [rigid body](RigidBody) before the velocity solve is performed.
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq, From)]
-#[reflect(Component)]
-pub(crate) struct PreSolveLinearVelocity(pub Vector);
-
-/// The angular velocity of a [rigid body](RigidBody) in radians per second.
-/// Positive values will result in counterclockwise rotation.
-///
-/// ## Example
-///
-/// ```
-/// use bevy::prelude::*;
-/// use bevy_xpbd_2d::prelude::*;
-///
-/// fn increase_angular_velocities(mut query: Query<&mut AngularVelocity>) {
-///     for mut angular_velocity in query.iter_mut() {
-///         angular_velocity.0 += 0.05;
-///     }
-/// }
-/// ```
-#[cfg(feature = "2d")]
 #[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq, From)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component)]
-pub struct AngularVelocity(pub Scalar);
-
-/// The angular velocity of a [rigid body](RigidBody) as a rotation axis
-/// multiplied by the angular speed in radians per second.
-///
-/// ## Example
-///
-/// ```
-/// use bevy::prelude::*;
-/// use bevy_xpbd_3d::prelude::*;
-///
-/// fn increase_angular_velocities(mut query: Query<&mut AngularVelocity>) {
-///     for mut angular_velocity in query.iter_mut() {
-///         angular_velocity.z += 0.05;
-///     }
-/// }
-/// ```
-#[cfg(feature = "3d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq, From)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[reflect(Component)]
-pub struct AngularVelocity(pub Vector);
-
-impl AngularVelocity {
-    /// Zero angular velocity.
-    #[cfg(feature = "2d")]
-    pub const ZERO: AngularVelocity = AngularVelocity(0.0);
-    /// Zero angular velocity.
-    #[cfg(feature = "3d")]
-    pub const ZERO: AngularVelocity = AngularVelocity(Vector::ZERO);
+pub(crate) struct PreSolveVelocity {
+    pub linear: Vector,
+    pub angular: AxialVector,
 }
-
-/// The angular velocity of a [rigid body](RigidBody) in radians per second, before
-/// the velocity solve is performed. Positive values will result in counterclockwise rotation.
-#[cfg(feature = "2d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq, From)]
-#[reflect(Component)]
-pub(crate) struct PreSolveAngularVelocity(pub Scalar);
-
-/// The angular velocity of a [rigid body](RigidBody) as a rotation axis
-/// multiplied by the angular speed in radians per second, before the velocity solve is performed.
-#[cfg(feature = "3d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq, From)]
-#[reflect(Component)]
-pub(crate) struct PreSolveAngularVelocity(pub Vector);
 
 /// Controls how [gravity](Gravity) affects a specific [rigid body](RigidBody).
 ///

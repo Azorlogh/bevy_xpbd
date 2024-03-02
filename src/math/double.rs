@@ -6,6 +6,11 @@ pub type Scalar = f64;
 /// The PI constant.
 pub const PI: Scalar = std::f64::consts::PI;
 
+#[cfg(feature = "2d")]
+pub(crate) type AxialVector = Scalar;
+#[cfg(feature = "3d")]
+pub(crate) type AxialVector = Vector;
+
 /// The vector type used by Bevy XPBD.
 #[cfg(feature = "2d")]
 pub type Vector = DVec2;
