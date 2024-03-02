@@ -28,7 +28,7 @@ fn setup(mut commands: Commands) {
                 ..default()
             },
             RigidBody::Kinematic,
-            AngularVelocity(1.5),
+            Velocity::angular(1.5),
         ))
         .id();
 

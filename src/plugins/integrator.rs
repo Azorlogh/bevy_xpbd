@@ -41,7 +41,7 @@ type PosIntegrationComponents = (
     &'static mut PreviousPosition,
     &'static mut AccumulatedTranslation,
     &'static mut Velocity,
-    Option<&'static LinearDamping>,
+    Option<&'static Damping>,
     Option<&'static GravityScale>,
     &'static ExternalForce,
     &'static Mass,
@@ -64,7 +64,7 @@ fn integrate_pos(
         mut prev_pos,
         mut translation,
         mut vel,
-        lin_damping,
+        damping,
         gravity_scale,
         external_force,
         mass,
@@ -83,8 +83,8 @@ fn integrate_pos(
         // Apply damping, gravity and other external forces
         if rb.is_dynamic() {
             // Apply damping
-            if let Some(damping) = lin_damping {
-                vel.linear *= 1.0 / (1.0 + delta_secs * damping.0);
+            if let Some(damping) = damping {
+                vel.linear *= 1.0 / (1.0 + delta_secs * damping.linear);
             }
 
             let effective_mass = locked_axes.apply_to_vec(Vector::splat(mass.0));
@@ -111,7 +111,7 @@ type RotIntegrationComponents = (
     &'static mut Rotation,
     &'static mut PreviousRotation,
     &'static mut Velocity,
-    Option<&'static AngularDamping>,
+    Option<&'static Damping>,
     &'static ExternalForce,
     &'static Inertia,
     &'static InverseInertia,
@@ -129,7 +129,7 @@ fn integrate_rot(mut bodies: Query<RotIntegrationComponents, Without<Sleeping>>,
         mut rot,
         mut prev_rot,
         mut vel,
-        ang_damping,
+        damping,
         external_force,
         _inertia,
         inv_inertia,
@@ -147,10 +147,10 @@ fn integrate_rot(mut bodies: Query<RotIntegrationComponents, Without<Sleeping>>,
         // Apply damping and external torque
         if rb.is_dynamic() {
             // Apply damping
-            if let Some(damping) = ang_damping {
+            if let Some(damping) = damping {
                 // avoid triggering bevy's change detection unnecessarily
-                if vel.angular != 0.0 && damping.0 != 0.0 {
-                    vel.angular *= 1.0 / (1.0 + delta_secs * damping.0);
+                if vel.angular != 0.0 && damping.angular != 0.0 {
+                    vel.angular *= 1.0 / (1.0 + delta_secs * damping.angular);
                 }
             }
 
@@ -182,7 +182,7 @@ fn integrate_rot(mut bodies: Query<RotIntegrationComponents, Without<Sleeping>>,
         mut rot,
         mut prev_rot,
         mut vel,
-        ang_damping,
+        damping,
         external_force,
         inertia,
         inv_inertia,
@@ -200,10 +200,10 @@ fn integrate_rot(mut bodies: Query<RotIntegrationComponents, Without<Sleeping>>,
         // Apply damping and external torque
         if rb.is_dynamic() {
             // Apply damping
-            if let Some(damping) = ang_damping {
+            if let Some(damping) = damping {
                 // avoid triggering bevy's change detection unnecessarily
-                if vel.angular != Vector::ZERO && damping.0 != 0.0 {
-                    vel.angular *= 1.0 / (1.0 + delta_secs * damping.0);
+                if vel.angular != Vector::ZERO && damping.angular != 0.0 {
+                    vel.angular *= 1.0 / (1.0 + delta_secs * damping.angular);
                 }
             }
 

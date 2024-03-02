@@ -29,7 +29,7 @@ fn setup(
                 ..default()
             },
             RigidBody::Kinematic,
-            AngularVelocity(Vector::Z * 1.5),
+            Velocity::angular(Vector::Z * 1.5),
         ))
         .id();
 

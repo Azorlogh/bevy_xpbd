@@ -427,6 +427,24 @@ pub struct Velocity {
 }
 
 impl Velocity {
+    /// Creates a new velocity with a given linear component
+    pub fn linear(linear: Vector) -> Self {
+        Self {
+            linear,
+            angular: default(),
+        }
+    }
+
+    /// Creates a new velocity with a given angular component
+    pub fn angular(angular: AxialVector) -> Self {
+        Self {
+            linear: default(),
+            angular,
+        }
+    }
+}
+
+impl Velocity {
     /// Zero linear velocity.
     pub const ZERO: Velocity = Velocity {
         linear: Vector::ZERO,
@@ -781,38 +799,33 @@ impl From<Scalar> for Friction {
 ///     ));
 /// }
 /// ```
-#[derive(
-    Component, Reflect, Debug, Clone, Copy, PartialEq, PartialOrd, Default, Deref, DerefMut, From,
-)]
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, PartialOrd, Default, From)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component)]
-pub struct LinearDamping(pub Scalar);
+pub struct Damping {
+    /// The linear damping
+    pub linear: Scalar,
+    /// The angular damping
+    pub angular: Scalar,
+}
 
-/// Automatically slows down a dynamic [rigid body](RigidBody), decreasing its
-/// [angular velocity](AngularVelocity) each frame. This can be used to simulate air resistance.
-///
-/// The default angular damping coefficient is `0.0`, which corresponds to no damping.
-///
-/// ## Example
-///
-/// ```
-/// use bevy::prelude::*;
-#[cfg_attr(feature = "2d", doc = "use bevy_xpbd_2d::prelude::*;")]
-#[cfg_attr(feature = "3d", doc = "use bevy_xpbd_3d::prelude::*;")]
-///
-/// fn setup(mut commands: Commands) {
-///     commands.spawn((
-///         RigidBody::Dynamic,
-///         AngularDamping(1.6),
-///     ));
-/// }
-/// ```
-#[derive(
-    Component, Reflect, Debug, Clone, Copy, PartialEq, PartialOrd, Default, Deref, DerefMut, From,
-)]
-#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
-#[reflect(Component)]
-pub struct AngularDamping(pub Scalar);
+impl Damping {
+    /// Creates a new damping with only a linear coefficient
+    pub fn linear(linear: Scalar) -> Self {
+        Self {
+            linear,
+            angular: 0.0,
+        }
+    }
+
+    /// Creates a new damping with only an angular coefficient
+    pub fn angular(angular: Scalar) -> Self {
+        Self {
+            linear: 0.0,
+            angular,
+        }
+    }
+}
 
 /// **Dominance** allows [dynamic rigid bodies](RigidBody::Dynamic) to dominate
 /// each other during physical interactions.

@@ -42,7 +42,10 @@ fn setup(
             ..default()
         },
         RigidBody::Dynamic,
-        AngularVelocity(Vector::new(2.5, 3.4, 1.6)),
+        Velocity {
+            angular: Vector::new(2.5, 3.4, 1.6),
+            ..default()
+        },
         Collider::cuboid(1.0, 1.0, 1.0),
     ));
     // Light

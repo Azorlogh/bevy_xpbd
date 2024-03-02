@@ -231,7 +231,7 @@ fn movement(
     mut controllers: Query<(
         &MovementAcceleration,
         &JumpImpulse,
-        &mut LinearVelocity,
+        &mut Velocity,
         Has<Grounded>,
     )>,
 ) {
@@ -240,17 +240,15 @@ fn movement(
     let delta_time = time.delta_seconds_f64().adjust_precision();
 
     for event in movement_event_reader.read() {
-        for (movement_acceleration, jump_impulse, mut linear_velocity, is_grounded) in
-            &mut controllers
-        {
+        for (movement_acceleration, jump_impulse, mut velocity, is_grounded) in &mut controllers {
             match event {
                 MovementAction::Move(direction) => {
-                    linear_velocity.x += direction.x * movement_acceleration.0 * delta_time;
-                    linear_velocity.z -= direction.y * movement_acceleration.0 * delta_time;
+                    velocity.linear.x += direction.x * movement_acceleration.0 * delta_time;
+                    velocity.linear.z -= direction.y * movement_acceleration.0 * delta_time;
                 }
                 MovementAction::Jump => {
                     if is_grounded {
-                        linear_velocity.y = jump_impulse.0;
+                        velocity.linear.y = jump_impulse.0;
                     }
                 }
             }
@@ -259,25 +257,22 @@ fn movement(
 }
 
 /// Applies [`ControllerGravity`] to character controllers.
-fn apply_gravity(
-    time: Res<Time>,
-    mut controllers: Query<(&ControllerGravity, &mut LinearVelocity)>,
-) {
+fn apply_gravity(time: Res<Time>, mut controllers: Query<(&ControllerGravity, &mut Velocity)>) {
     // Precision is adjusted so that the example works with
     // both the `f32` and `f64` features. Otherwise you don't need this.
     let delta_time = time.delta_seconds_f64().adjust_precision();
 
-    for (gravity, mut linear_velocity) in &mut controllers {
-        linear_velocity.0 += gravity.0 * delta_time;
+    for (gravity, mut velocity) in &mut controllers {
+        velocity.linear += gravity.0 * delta_time;
     }
 }
 
 /// Slows down movement in the XZ plane.
-fn apply_movement_damping(mut query: Query<(&MovementDampingFactor, &mut LinearVelocity)>) {
-    for (damping_factor, mut linear_velocity) in &mut query {
+fn apply_movement_damping(mut query: Query<(&MovementDampingFactor, &mut Velocity)>) {
+    for (damping_factor, mut velocity) in &mut query {
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
-        linear_velocity.x *= damping_factor.0;
-        linear_velocity.z *= damping_factor.0;
+        velocity.linear.x *= damping_factor.0;
+        velocity.linear.z *= damping_factor.0;
     }
 }
 
@@ -296,7 +291,7 @@ fn kinematic_controller_collisions(
             &RigidBody,
             &mut Position,
             &Rotation,
-            &mut LinearVelocity,
+            &mut Velocity,
             Option<&MaxSlopeAngle>,
         ),
         With<CharacterController>,
@@ -319,7 +314,7 @@ fn kinematic_controller_collisions(
         // Get the body of the character controller and whether it is the first
         // or second entity in the collision.
         let is_first: bool;
-        let (rb, mut position, rotation, mut linear_velocity, max_slope_angle) =
+        let (rb, mut position, rotation, mut velocity, max_slope_angle) =
             if let Ok(character) = character_controllers.get_mut(collider_parent1.get()) {
                 is_first = true;
                 character
@@ -352,9 +347,9 @@ fn kinematic_controller_collisions(
             // If the slope isn't too steep to walk on but the character
             // is falling, reset vertical velocity.
             if max_slope_angle.is_some_and(|angle| normal.angle_between(Vector::Y).abs() <= angle.0)
-                && linear_velocity.y < 0.0
+                && velocity.linear.y < 0.0
             {
-                linear_velocity.y = linear_velocity.y.max(0.0);
+                velocity.linear.y = velocity.linear.y.max(0.0);
             }
         }
     }

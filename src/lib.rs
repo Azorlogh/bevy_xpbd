@@ -125,7 +125,7 @@
 //! - [Rigid body types](RigidBody#rigid-body-types)
 //! - [Creating rigid bodies](RigidBody#creation)
 //! - [Movement](RigidBody#movement)
-//!     - [Linear](LinearVelocity) and [angular](AngularVelocity) velocity
+//!     - [Linear](Velocity) and [angular](AngularVelocity) velocity
 //!     - [Forces](ExternalForce), [torque](ExternalTorque), and [linear](ExternalImpulse) and [angular](ExternalAngularImpulse) impulses
 //! - [Gravity] and [gravity scale](GravityScale)
 //! - [Mass properties](RigidBody#mass-properties)

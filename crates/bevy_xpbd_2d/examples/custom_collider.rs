@@ -200,7 +200,7 @@ fn setup(
                 },
                 RigidBody::Dynamic,
                 CircleCollider::new(particle_radius.adjust_precision()),
-                LinearDamping(0.4),
+                Damping::linear(0.4),
             ));
         }
     }
@@ -208,21 +208,21 @@ fn setup(
 
 /// Pulls all particles towards the center.
 fn center_gravity(
-    mut particles: Query<(&Transform, &mut LinearVelocity), Without<CenterBody>>,
+    mut particles: Query<(&Transform, &mut Velocity), Without<CenterBody>>,
     time: Res<Time>,
 ) {
     let delta_seconds = time.delta_seconds_f64().adjust_precision();
-    for (transform, mut lin_vel) in &mut particles {
+    for (transform, mut vel) in &mut particles {
         let pos_delta = transform.translation.truncate().adjust_precision();
         let dir = -pos_delta.normalize_or_zero();
-        lin_vel.0 += 800.0 * delta_seconds * dir;
+        vel.linear += 800.0 * delta_seconds * dir;
     }
 }
 
 /// Rotates the center body periodically clockwise and counterclockwise.
-fn rotate(mut query: Query<&mut AngularVelocity, With<CenterBody>>, time: Res<Time>) {
+fn rotate(mut query: Query<&mut Velocity, With<CenterBody>>, time: Res<Time>) {
     let sin = 3.0 * time.elapsed_seconds_f64().adjust_precision().sin();
-    for mut ang_vel in &mut query {
-        ang_vel.0 = sin;
+    for mut vel in &mut query {
+        vel.angular = sin;
     }
 }

@@ -52,6 +52,7 @@ serialize = [
 name = "bevy_xpbd_3d"
 path = "../../src/lib.rs"
 required-features = ["3d"]
+doctest = false # TEMPORARY
 
 [dependencies]
 bevy_xpbd_derive = { path = "../bevy_xpbd_derive", version = "0.1" }
